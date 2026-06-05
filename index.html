@@ -1,0 +1,867 @@
+﻿<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>小红书标题评分器 - 爆款标题一键优化</title>
+<style>
+  :root {
+    --bg: #fff5f5;
+    --card: #ffffff;
+    --primary: #ff2442;
+    --primary-light: #ffe0e5;
+    --text: #1a1a2e;
+    --text-secondary: #666;
+    --border: #f0e0e0;
+    --success: #00c853;
+    --warning: #ff9800;
+    --danger: #ff2442;
+    --gauge-bg: #f5f5f5;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 640px;
+    margin: 0 auto;
+    padding: 20px 16px 40px;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    padding: 32px 0 24px;
+  }
+
+  .header .logo {
+    font-size: 42px;
+    margin-bottom: 8px;
+  }
+
+  .header h1 {
+    font-size: 24px;
+    font-weight: 700;
+    background: linear-gradient(135deg, #ff2442, #ff6b81);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header .tagline {
+    color: var(--text-secondary);
+    font-size: 14px;
+    margin-top: 4px;
+  }
+
+  /* Usage Counter */
+  .usage-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: var(--card);
+    border-radius: 12px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--text-secondary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+  }
+
+  .usage-bar .count {
+    font-weight: 600;
+    color: var(--primary);
+  }
+
+  .usage-bar .upgrade-btn {
+    background: linear-gradient(135deg, #ff2442, #ff6b81);
+    color: #fff;
+    border: none;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  /* Input Card */
+  .card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .card-label {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .card-label .icon { font-size: 18px; }
+
+  .title-input {
+    width: 100%;
+    min-height: 80px;
+    border: 2px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    font-size: 15px;
+    font-family: inherit;
+    resize: vertical;
+    transition: border-color 0.2s;
+    outline: none;
+    line-height: 1.8;
+  }
+
+  .title-input:focus {
+    border-color: var(--primary);
+  }
+
+  .title-input::placeholder {
+    color: #ccc;
+  }
+
+  .input-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 10px;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .char-count.warning { color: var(--warning); }
+  .char-count.over { color: var(--danger); }
+
+  /* Examples */
+  .examples {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+  }
+
+  .example-tag {
+    font-size: 12px;
+    padding: 4px 10px;
+    background: var(--primary-light);
+    color: var(--primary);
+    border-radius: 20px;
+    cursor: pointer;
+    border: none;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .example-tag:hover {
+    background: var(--primary);
+    color: #fff;
+  }
+
+  /* Analyze Button */
+  .analyze-btn {
+    width: 100%;
+    padding: 14px;
+    background: linear-gradient(135deg, #ff2442, #ff6b81);
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    box-shadow: 0 4px 15px rgba(255,36,66,0.3);
+  }
+
+  .analyze-btn:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(255,36,66,0.4); }
+  .analyze-btn:active { transform: translateY(0); }
+  .analyze-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  /* Loading */
+  .loading {
+    text-align: center;
+    padding: 20px;
+    display: none;
+  }
+
+  .loading.active { display: block; }
+
+  .spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--border);
+    border-top-color: var(--primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .loading-text { color: var(--text-secondary); font-size: 14px; }
+
+  /* Results */
+  .results { display: none; }
+  .results.active { display: block; }
+
+  /* Score Card */
+  .score-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 24px 20px;
+    margin-bottom: 16px;
+    text-align: center;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .score-gauge {
+    position: relative;
+    width: 140px;
+    height: 140px;
+    margin: 0 auto 16px;
+  }
+
+  .gauge-circle {
+    transform: rotate(-90deg);
+    width: 140px;
+    height: 140px;
+  }
+
+  .gauge-bg {
+    fill: none;
+    stroke: var(--gauge-bg);
+    stroke-width: 12;
+  }
+
+  .gauge-fg {
+    fill: none;
+    stroke: var(--primary);
+    stroke-width: 12;
+    stroke-linecap: round;
+    transition: stroke-dashoffset 1s ease, stroke 0.5s;
+  }
+
+  .score-number {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 42px;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+  }
+
+  .score-label {
+    color: var(--text-secondary);
+    font-size: 13px;
+    margin-top: 2px;
+  }
+
+  .score-verdict {
+    font-size: 16px;
+    font-weight: 700;
+    margin-top: 8px;
+  }
+
+  /* Dimensions */
+  .dimensions {
+    display: grid;
+    gap: 10px;
+    margin-top: 16px;
+    text-align: left;
+  }
+
+  .dim-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 0;
+  }
+
+  .dim-icon {
+    font-size: 20px;
+    width: 32px;
+    text-align: center;
+  }
+
+  .dim-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .dim-name {
+    font-size: 13px;
+    font-weight: 600;
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .dim-bar-bg {
+    height: 6px;
+    background: var(--gauge-bg);
+    border-radius: 3px;
+    margin-top: 4px;
+    overflow: hidden;
+  }
+
+  .dim-bar-fg {
+    height: 100%;
+    border-radius: 3px;
+    transition: width 0.8s ease;
+  }
+
+  .dim-tip {
+    font-size: 11px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+  }
+
+  /* Rewrite Section */
+  .rewrite-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+    margin-bottom: 16px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .rewrite-card h3 {
+    font-size: 16px;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .rewrite-item {
+    background: var(--bg);
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 10px;
+    position: relative;
+  }
+
+  .rewrite-item:last-child { margin-bottom: 0; }
+
+  .rewrite-badge {
+    display: inline-block;
+    font-size: 11px;
+    font-weight: 700;
+    padding: 2px 8px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+  }
+
+  .badge-emotion { background: #fff0f0; color: #ff2442; }
+  .badge-number { background: #fff8e1; color: #ff8f00; }
+  .badge-suspense { background: #e8f5e9; color: #2e7d32; }
+  .badge-compare { background: #e3f2fd; color: #1565c0; }
+  .badge-pain { background: #f3e5f5; color: #7b1fa2; }
+
+  .rewrite-text {
+    font-size: 15px;
+    font-weight: 600;
+    margin-bottom: 4px;
+    line-height: 1.5;
+  }
+
+  .rewrite-reason {
+    font-size: 12px;
+    color: var(--text-secondary);
+  }
+
+  .copy-btn {
+    position: absolute;
+    top: 12px;
+    right: 14px;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 5px 10px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+  }
+
+  .copy-btn:hover {
+    border-color: var(--primary);
+    color: var(--primary);
+  }
+
+  .copy-btn.copied {
+    background: var(--success);
+    color: #fff;
+    border-color: var(--success);
+  }
+
+  /* Tips */
+  .tips-card {
+    background: var(--card);
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+  }
+
+  .tips-card h3 {
+    font-size: 15px;
+    margin-bottom: 12px;
+  }
+
+  .tips-list {
+    list-style: none;
+    font-size: 13px;
+    color: var(--text-secondary);
+  }
+
+  .tips-list li {
+    padding: 6px 0;
+    padding-left: 20px;
+    position: relative;
+  }
+
+  .tips-list li::before {
+    content: "💡";
+    position: absolute;
+    left: 0;
+    top: 6px;
+    font-size: 12px;
+  }
+
+  /* Footer */
+  .footer {
+    text-align: center;
+    padding: 24px 0 16px;
+    font-size: 12px;
+    color: #ccc;
+  }
+
+  /* Responsive */
+  @media (max-width: 480px) {
+    .container { padding: 12px 12px 32px; }
+    .header { padding: 20px 0 16px; }
+    .header h1 { font-size: 22px; }
+    .score-gauge { width: 120px; height: 120px; }
+    .score-number { font-size: 36px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <!-- Header -->
+  <div class="header">
+    <div class="logo">📕</div>
+    <h1>小红书标题评分器</h1>
+    <p class="tagline">AI 智能评分 + 爆款改写，让你的笔记点击率翻倍</p>
+  </div>
+
+  <!-- Usage -->
+  <div class="usage-bar">
+    <span>今日剩余：<span class="count" id="remaining">5</span> 次</span>
+    <button class="upgrade-btn" onclick="showUpgrade()">🌟 无限使用</button>
+  </div>
+
+  <!-- Input Card -->
+  <div class="card">
+    <div class="card-label">
+      <span class="icon">✍️</span> 输入你的标题草稿
+    </div>
+    <textarea
+      class="title-input"
+      id="titleInput"
+      placeholder="例如：分享几个我平时常用的护肤小技巧，都是自己总结出来的，希望对大家有帮助"
+      maxlength="60"
+    ></textarea>
+    <div class="input-footer">
+      <span class="char-count" id="charCount">0 / 60</span>
+      <span style="font-size:12px;color:#ccc;">最优 15-25 字</span>
+    </div>
+    <div class="examples">
+      <button class="example-tag" onclick="fillExample('3个方法让你一周瘦5斤，我亲测有效')">瘦身爆款</button>
+      <button class="example-tag" onclick="fillExample('谁懂啊！！！这个粉底液真的绝了')">美妆爆款</button>
+      <button class="example-tag" onclick="fillExample('千万别这样护肤！！！不然你会后悔')">悬念爆款</button>
+    </div>
+  </div>
+
+  <!-- Analyze Button -->
+  <button class="analyze-btn" id="analyzeBtn" onclick="analyze()">
+    🔍 开始分析评分
+  </button>
+
+  <!-- Loading -->
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <div class="loading-text">AI 正在分析你的标题...</div>
+  </div>
+
+  <!-- Results -->
+  <div class="results" id="results">
+    <!-- Score -->
+    <div class="score-card">
+      <div class="score-gauge">
+        <svg class="gauge-circle" viewBox="0 0 140 140">
+          <circle class="gauge-bg" cx="70" cy="70" r="60"/>
+          <circle class="gauge-fg" id="gaugeFg" cx="70" cy="70" r="60"
+            stroke-dasharray="376.99"
+            stroke-dashoffset="376.99"/>
+        </svg>
+        <div class="score-number" id="scoreNum">0</div>
+      </div>
+      <div class="score-verdict" id="scoreVerdict"></div>
+
+      <div class="dimensions" id="dimensions"></div>
+    </div>
+
+    <!-- Rewrite -->
+    <div class="rewrite-card">
+      <h3>✨ AI 优化版本</h3>
+      <div id="rewrites"></div>
+    </div>
+
+    <!-- Tips -->
+    <div class="tips-card">
+      <h3>📌 小红书标题黄金法则</h3>
+      <ul class="tips-list">
+        <li>用数字制造具体感（"3个方法" 比 "几个方法" 好 10 倍）</li>
+        <li>加情绪词调动共鸣（"谁懂啊" "绝了" "救命"）</li>
+        <li>制造悬念或反常识（"千万别..." "原来..."）</li>
+        <li>标题控制在 15-25 字最佳，太长会被截断</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="footer">小红书标题评分器 · 让每篇笔记都自带爆款基因</div>
+</div>
+
+<script>
+// ── 状态管理 ──
+const MAX_FREE = 5;
+let remaining = MAX_FREE;
+
+try {
+  const stored = JSON.parse(localStorage.getItem('xh_title_usage') || '{}');
+  const today = new Date().toDateString();
+  if (stored.date === today) {
+    remaining = stored.count;
+  } else {
+    localStorage.setItem('xh_title_usage', JSON.stringify({ date: today, count: remaining }));
+  }
+} catch(e) {
+  localStorage.setItem('xh_title_usage', JSON.stringify({ date: new Date().toDateString(), count: remaining }));
+}
+
+// ── UI 更新 ──
+function updateUI() {
+  document.getElementById('remaining').textContent = Math.max(0, remaining);
+}
+
+const titleInput = document.getElementById('titleInput');
+const charCount = document.getElementById('charCount');
+
+titleInput.addEventListener('input', () => {
+  const len = titleInput.value.length;
+  charCount.textContent = `${len} / 60`;
+  charCount.className = 'char-count';
+  if (len > 50) charCount.classList.add('warning');
+  if (len > 60) charCount.classList.add('over');
+});
+
+function fillExample(text) {
+  titleInput.value = text;
+  titleInput.dispatchEvent(new Event('input'));
+}
+
+// ── 评分算法 ──
+const DIMENSIONS = [
+  { key: 'attraction', name: '吸引力', icon: '🧲', desc: '第一眼能否抓住眼球' },
+  { key: 'emotion',   name: '情绪张力', icon: '💥', desc: '有没有调动读者情绪' },
+  { key: 'search',    name: '搜索友好', icon: '🔍', desc: '是否包含搜索关键词' },
+  { key: 'topic',     name: '话题性', icon: '🔥', desc: '有没有蹭上热点话题' },
+  { key: 'concise',   name: '简洁度', icon: '✂️', desc: '是否精炼不啰嗦' },
+];
+
+// 小红书爆款标题模式
+const PATTERNS = {
+  number:   /(\d+[个种项件款条步招]|[0-9]+[Kkw万])/,
+  emotion:  /(谁懂|救命|绝了|哭了|疯了|太|真的|超级|巨|爆|无敌|天呐|啊啊|！！|！)/,
+  suspense: /(原来|居然|竟然|千万别|不要再|别|终于|这才是|才知道|揭开)/,
+  compare:  /(vs|对比|和|跟|比|碾压|吊打|差别|差距)/,
+  question: /[？?]/,
+  pain:     /(后悔|踩雷|避坑|翻车|踩坑|血泪|教训|误区|陷阱)/,
+  result:   /(方法|技巧|攻略|指南|秘诀|干货|合集|总结|分享|推荐)/,
+  hotWord:  /(202[0-9]|最新|全网|爆火|热门|必看|收藏|点赞|赞爆)/,
+};
+
+// 情绪词库
+const EMOTION_WORDS = ['谁懂', '救命', '绝了', '哭了', '疯了', '太', '真的', '超级', '巨', '爆', '无敌', '天呐', '啊啊', '哇塞', 'OMG', '震惊', '离谱'];
+
+function scoreTitle(title) {
+  const scores = {};
+  const details = {};
+
+  // 1. 吸引力（数字 + 情绪 + 标点）
+  let attraction = 30;
+  if (PATTERNS.number.test(title)) attraction += 20;
+  if (PATTERNS.emotion.test(title)) attraction += 20;
+  if (/[！!]$/.test(title)) attraction += 10;
+  if (title.length >= 15 && title.length <= 25) attraction += 15;
+  else if (title.length > 25 && title.length <= 35) attraction += 5;
+  scores.attraction = Math.min(100, attraction);
+
+  // 2. 情绪张力
+  let emotion = 20;
+  if (PATTERNS.emotion.test(title)) emotion += 30;
+  const emotionCount = EMOTION_WORDS.filter(w => title.includes(w)).length;
+  emotion += emotionCount * 15;
+  if (/[！!]{2,}/.test(title)) emotion += 10;
+  if (/[啊啊嗯哦]/.test(title)) emotion += 5;
+  scores.emotion = Math.min(100, emotion);
+
+  // 3. 搜索友好
+  let search = 30;
+  if (PATTERNS.number.test(title)) search += 10;
+  if (PATTERNS.result.test(title)) search += 15;
+  if (PATTERNS.hotWord.test(title)) search += 10;
+  // 关键词密度
+  const keywords = title.match(/[^的了一是我有和不着在]/g);
+  if (keywords && keywords.length >= 8) search += 15;
+  if (title.length >= 10 && title.length <= 30) search += 10;
+  scores.search = Math.min(100, search);
+
+  // 4. 话题性
+  let topic = 25;
+  if (PATTERNS.compare.test(title)) topic += 20;
+  if (PATTERNS.suspense.test(title)) topic += 20;
+  if (PATTERNS.pain.test(title)) topic += 20;
+  if (PATTERNS.question.test(title)) topic += 10;
+  if (PATTERNS.hotWord.test(title)) topic += 10;
+  scores.topic = Math.min(100, topic);
+
+  // 5. 简洁度
+  let concise = 40;
+  if (title.length <= 15) concise += 30;
+  else if (title.length <= 20) concise += 35;
+  else if (title.length <= 25) concise += 30;
+  else if (title.length <= 30) concise += 15;
+  else if (title.length <= 40) concise += 5;
+  else concise -= 10;
+  scores.concise = Math.min(100, Math.max(0, concise));
+
+  // 综合分（去掉最低分取平均偏重吸引力）
+  const allScores = Object.values(scores);
+  const min = Math.min(...allScores);
+  const adjusted = allScores.filter((_, i) => Object.values(scores)[i] !== min || allScores.indexOf(min) !== i);
+  const avg = adjusted.reduce((a, b) => a + b, 0) / adjusted.length;
+  const overall = Math.round(avg * 0.6 + scores.attraction * 0.4);
+
+  return { overall, dimensions: scores };
+}
+
+// ── AI 改写（规则 + 模板） ──
+function generateRewrites(title) {
+  const rewrites = [];
+
+  // 提取标题中的核心关键词
+  const cleaned = title.replace(/[，。！？、；：""''（）\(\)\[\]【】\s]/g, ' ');
+  const words = cleaned.split(/\s+/).filter(w => w.length >= 2);
+  const core = words.slice(0, Math.min(5, words.length)).join('');
+
+  // 模板1：数字+结果型
+  if (!PATTERNS.number.test(title) && core.length > 2) {
+    const nums = ['3个', '5个', '6个', '8个', '10个'];
+    const num = nums[Math.floor(Math.random() * nums.length)];
+    rewrites.push({
+      text: `${num}${core.slice(0, 6)}小技巧，最后一个太绝了！！`,
+      badge: 'badge-number',
+      badgeText: '数字型',
+      reason: '数字制造具体感，配合悬念结尾，点击率提升 60%',
+    });
+  } else if (core.length > 3) {
+    rewrites.push({
+      text: `用了${core.slice(0, 6)}才知道，以前都白费了！！！`,
+      badge: 'badge-suspense',
+      badgeText: '悬念型',
+      reason: '制造信息差引发好奇，人群天然怕"错过"',
+    });
+  }
+
+  // 模板2：情绪+对比型
+  if (core.length > 4) {
+    rewrites.push({
+      text: `谁懂啊！！这个${core.slice(0, 4)}真的绝了，后悔没早用`,
+      badge: 'badge-emotion',
+      badgeText: '情绪型',
+      reason: '前置情绪词建立共鸣，连用感叹号强化冲击力',
+    });
+  }
+
+  // 模板3：反常识/避坑型
+  if (core.length > 4) {
+    rewrites.push({
+      text: `千万别乱${core.slice(0, 4)}！！99%的人都踩过这个坑`,
+      badge: 'badge-pain',
+      badgeText: '痛点型',
+      reason: '反常识开头 + 制造焦虑感，驱动用户点开验证',
+    });
+  }
+
+  return rewrites;
+}
+
+// ── 主流程 ──
+function analyze() {
+  const title = titleInput.value.trim();
+  if (!title) {
+    titleInput.focus();
+    titleInput.style.borderColor = 'var(--danger)';
+    setTimeout(() => titleInput.style.borderColor = 'var(--border)', 1500);
+    return;
+  }
+
+  if (remaining <= 0) {
+    showUpgrade();
+    return;
+  }
+
+  // 扣次数
+  remaining--;
+  const today = new Date().toDateString();
+  localStorage.setItem('xh_title_usage', JSON.stringify({ date: today, count: remaining }));
+  updateUI();
+
+  // 显示加载
+  document.getElementById('loading').classList.add('active');
+  document.getElementById('results').classList.remove('active');
+  document.getElementById('analyzeBtn').disabled = true;
+
+  // 模拟 AI 延迟（实际可接 API）
+  setTimeout(() => {
+    const result = scoreTitle(title);
+    const rewrites = generateRewrites(title);
+    renderResults(result, rewrites);
+
+    document.getElementById('loading').classList.remove('active');
+    document.getElementById('results').classList.add('active');
+    document.getElementById('analyzeBtn').disabled = false;
+
+    // 滚动到结果
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }, 800);
+}
+
+// ── 渲染结果 ──
+function renderResults(result, rewrites) {
+  // 仪表盘
+  const gaugeFg = document.getElementById('gaugeFg');
+  const circumference = 376.99;
+  const offset = circumference - (result.overall / 100) * circumference;
+
+  // 颜色
+  let color;
+  if (result.overall >= 85) color = '#00c853';
+  else if (result.overall >= 70) color = '#64dd17';
+  else if (result.overall >= 50) color = '#ff9800';
+  else color = '#ff2442';
+
+  gaugeFg.style.strokeDashoffset = offset;
+  gaugeFg.style.stroke = color;
+
+  document.getElementById('scoreNum').textContent = result.overall;
+  document.getElementById('scoreNum').style.color = color;
+
+  // 评语
+  let verdict;
+  if (result.overall >= 90) verdict = '🏆 爆款预定！发布就对了';
+  else if (result.overall >= 75) verdict = '👍 优质标题，微调后更炸';
+  else if (result.overall >= 60) verdict = '📝 还不错，还有优化空间';
+  else if (result.overall >= 40) verdict = '🔧 建议大改，重点加情绪词';
+  else verdict = '⚠️ 标题太平淡，重写吧';
+
+  document.getElementById('scoreVerdict').textContent = verdict;
+
+  // 维度条
+  const dimsEl = document.getElementById('dimensions');
+  dimsEl.innerHTML = DIMENSIONS.map(d => {
+    const score = result.dimensions[d.key];
+    let barColor;
+    if (score >= 80) barColor = '#00c853';
+    else if (score >= 60) barColor = '#64dd17';
+    else if (score >= 40) barColor = '#ff9800';
+    else barColor = '#ff2442';
+
+    let tip = '';
+    if (score < 60) {
+      const tips = {
+        attraction: '试试加入数字或情绪词',
+        emotion: '加"谁懂啊""绝了"等感叹词',
+        search: '加上品类关键词更易被搜索',
+        topic: '结合热点话题或制造对比',
+        concise: '精简到 15-25 字效果最好',
+      };
+      tip = tips[d.key] || '';
+    }
+
+    return `
+      <div class="dim-item">
+        <div class="dim-icon">${d.icon}</div>
+        <div class="dim-info">
+          <div class="dim-name">
+            <span>${d.name}</span>
+            <span style="color:${barColor};font-weight:700;">${score}分</span>
+          </div>
+          <div class="dim-bar-bg">
+            <div class="dim-bar-fg" style="width:${score}%;background:${barColor};"></div>
+          </div>
+          ${tip ? `<div class="dim-tip">💡 ${tip}</div>` : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  // 改写版本
+  const rewritesEl = document.getElementById('rewrites');
+  rewritesEl.innerHTML = rewrites.map((r, i) => `
+    <div class="rewrite-item">
+      <span class="rewrite-badge ${r.badge}">${r.badgeText}</span>
+      <div class="rewrite-text">${r.text}</div>
+      <div class="rewrite-reason">${r.reason}</div>
+      <button class="copy-btn" onclick="copyRewrite(this, '${r.text.replace(/'/g, "\\'")}')">📋 复制</button>
+    </div>
+  `).join('');
+}
+
+// ── 复制 ──
+function copyRewrite(btn, text) {
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✅ 已复制';
+    btn.classList.add('copied');
+    setTimeout(() => {
+      btn.textContent = '📋 复制';
+      btn.classList.remove('copied');
+    }, 2000);
+  });
+}
+
+// ── 升级弹窗 ──
+function showUpgrade() {
+  alert('🚀 免费版每日 5 次评分\n\n🌟 无限使用版：9.9 元/月\n\n现在还在验证阶段，欢迎多提反馈！\n后续会上线付费功能~');
+}
+
+updateUI();
+</script>
+</body>
+</html>
